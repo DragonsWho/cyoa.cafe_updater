@@ -328,7 +328,27 @@ async def main_async(force_screenshots=False):
                 logger.error(f"Screenshot file not found after processing: {webp_path}")
                 visual_analysis_failures.append(base_url)
 
-           # logger.info(f"Running summarization for {md_file} in sent_search mode")
+
+            # ==============================================================================
+            # NOTE: SEMANTIC SEARCH SUMMARY - CURRENTLY DISABLED
+            #
+            # This block was responsible for generating a specific type of summary
+            # optimized for sentence-level or semantic search on the platform.
+            #
+            # It would call `summarize.py` with `--mode sent_search`. The goal was to
+            # create a descriptive, narrative summary that would be indexed for a
+            # full-text search engine, helping users discover the game through
+            # keyword queries. The output was a .md file in the 'summaries/' directory.
+            #
+            # The 0.5-second pause was a simple rate-limiting measure to avoid
+            # overwhelming the external AI API with rapid, successive requests.
+            #
+            # This functionality has been temporarily disabled to reduce the number of
+            # API calls per game and to speed up the overall processing time.
+            # To re-enable it, simply uncomment the entire block below.
+            # ==============================================================================
+            
+            # logger.info(f"Running summarization for {md_file} in sent_search mode")
             # success, output, error = await run_script_async(
             #     "summarize.py", 
             #     f"{md_file} --mode sent_search", 
@@ -336,7 +356,7 @@ async def main_async(force_screenshots=False):
             # )
             # if not success:
             #     logger.error(f"Summarization failed for {url}: {error}")
-
+            #
             # logger.info("Pausing for 0.5s before next summarization...")
             # await asyncio.sleep(0.5)
 
