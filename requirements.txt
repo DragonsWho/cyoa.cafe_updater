@@ -1,28 +1,28 @@
-# Для работы с API и скачивания
+# For working with APIs and downloading
 requests
 
-# Для парсинга HTML/CSS
+# For parsing HTML/CSS
 beautifulsoup4
 
-# Для работы с .env файлом конфигурации
+# For working with the .env configuration file
 python-dotenv
 
-# Для анализа и обработки данных
+# For data analysis and processing
 pandas
 
-# Для нечеткого сравнения строк
+# For fuzzy string matching
 fuzzywuzzy
 python-Levenshtein
 
-# Для управления браузером (Selenium)
+# For browser automation (Selenium)
 selenium
 webdriver-manager
 
-# Для определения кодировок файлов
+# For detecting file encodings
 chardet
 
-# Для обработки изображений
+# For image processing
 Pillow
 
-# Для работы с Google Gemini API (новая!)
+# For working with the Google Gemini API (new!)
 google-generativeai

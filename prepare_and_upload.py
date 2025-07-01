@@ -5,12 +5,12 @@ import shutil
 import subprocess
 import sys
 import json
-import re # Нужен для удаления висячих запятых
+import re  # Needed for removing trailing commas
 from pathlib import Path
 import logging
 import traceback
 
-# --- (Настройка логирования без изменений) ---
+# --- Logging Setup ---
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# --- (Константы без изменений) ---
+# --- Constants ---
 CATALOG_JSON_DIR = "catalog_json"
 SCREENSHOTS_DIR = "screenshots"
 NEW_GAMES_DIR = "New_Games"
@@ -33,38 +33,44 @@ GAME_UPLOADER_SCRIPT = "GameUploader.py"
 logger.info("--- Prepare_and_upload.py script started ---")
 logger.info(f"Current Working Directory: {os.getcwd()}")
 
-# --- Функции очистки JSON (добавляем удаление висячих запятых) ---
+# --- JSON Cleaning Functions ---
 def remove_json_comments(json_text):
-    # ... (код функции без изменений) ...
-    lines = json_text.splitlines(); cleaned_lines = []; in_string = False
+    lines = json_text.splitlines()
+    cleaned_lines = []
+    in_string = False
     for line in lines:
-        cleaned_line = ""; i = 0
+        cleaned_line = ""
+        i = 0
         while i < len(line):
             char = line[i]
-            if char == '"' and (i == 0 or line[i-1] != '\\'): in_string = not in_string; cleaned_line += char
-            elif not in_string and i + 1 < len(line) and char == '/' and line[i+1] == '/': break
-            else: cleaned_line += char
+            if char == '"' and (i == 0 or line[i-1] != '\\'):
+                in_string = not in_string
+            if not in_string and i + 1 < len(line) and char == '/' and line[i+1] == '/':
+                break
+            cleaned_line += char
             i += 1
-        if cleaned_line.strip(): cleaned_lines.append(cleaned_line)
+        if cleaned_line.strip():
+            cleaned_lines.append(cleaned_line)
     return '\n'.join(cleaned_lines)
 
 def strip_markdown_wrappers(json_text):
-    # ... (код функции без изменений) ...
-    lines = json_text.splitlines(); cleaned_lines = []
+    lines = json_text.splitlines()
+    cleaned_lines = []
     for line in lines:
         stripped_line = line.strip()
-        if stripped_line == "```json" or stripped_line == "```": continue
+        if stripped_line == "```json" or stripped_line == "```":
+            continue
         cleaned_lines.append(line)
     return '\n'.join(cleaned_lines)
 
 def remove_trailing_commas(json_text):
-    """Attempt to remove trailing commas before closing braces/brackets."""
-    # Убираем запятые перед } и ] с возможными пробелами между ними
+    """Removes trailing commas before closing braces and brackets."""
+    # Remove commas before a } or ] with optional whitespace in between.
     cleaned_text = re.sub(r',\s*(\}|\])', r'\1', json_text)
     return cleaned_text
 
 def validate_and_clean_json(json_path):
-    """Validate and clean JSON, return original and cleaned text."""
+    """Validate and clean JSON, returning the original and cleaned text."""
     logger.info(f"Processing JSON file: {json_path}")
     absolute_json_path = os.path.abspath(json_path)
     logger.info(f"Absolute path: {absolute_json_path}")
@@ -84,32 +90,31 @@ def validate_and_clean_json(json_path):
         content_no_comments = remove_json_comments(content_no_markdown)
         logger.debug(f"After comment removal (first 500 chars):\n{content_no_comments[:500]}...")
 
-        # --- НОВЫЙ ШАГ: Удаление висячих запятых ---
+        # --- NEW STEP: Remove trailing commas ---
         logger.debug("Attempting to remove trailing commas...")
         content_no_trailing_commas = remove_trailing_commas(content_no_comments)
         if content_no_trailing_commas != content_no_comments:
-            logger.info("Trailing commas potentially removed.") # Лог, если что-то заменилось
+            logger.info("Trailing commas were removed.")
             logger.debug(f"After trailing comma removal (first 500 chars):\n{content_no_trailing_commas[:500]}...")
         else:
-             logger.debug("No trailing commas found or removed by regex.")
+            logger.debug("No trailing commas found or removed by regex.")
         # ------------------------------------------
 
-        # Финальная валидация
+        # Final validation
         final_cleaned_content = content_no_trailing_commas
         try:
-            json.loads(final_cleaned_content) # Проверяем финальный результат
-            logger.info(f"JSON validation successful after ALL cleaning steps: {json_path}")
-            return original_content, final_cleaned_content # Возвращаем ОРИГИНАЛ и ПОЛНОСТЬЮ ОЧИЩЕННЫЙ
+            json.loads(final_cleaned_content) # Validate the final result
+            logger.info(f"JSON validation successful after all cleaning steps: {json_path}")
+            return original_content, final_cleaned_content # Return the ORIGINAL and the FULLY CLEANED content
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON structure in {json_path} EVEN AFTER ALL CLEANING: {e}")
             logger.error(f"Problematic section (approx.): ...{final_cleaned_content[max(0, e.pos-40):e.pos+40]}...")
-            return None, None # Очистка не помогла
+            return None, None # Cleaning did not help
 
     except Exception as e:
         logger.error(f"Unexpected error processing JSON file {json_path}: {e}", exc_info=True)
         return None, None
 
-# --- (load_base64_image без изменений) ---
 def load_base64_image(project_name):
     """Load base64 image string from file if it exists."""
     base64_path = os.path.join(SCREENSHOTS_DIR, f"{project_name}_base64.txt")
@@ -127,25 +132,28 @@ def load_base64_image(project_name):
         logger.warning(f"Base64 image file not found: {base64_path}")
         return None
 
-# --- prepare_game_files (Исправлено возвращаемое значение) ---
 def prepare_game_files(test_mode=False):
+    """
+    Prepares game files by validating JSON, adding Base64 data, and copying files.
+    Returns a tuple (bool_success, list_of_processed_files).
+    """
     logger.info(f"--- Starting file preparation (test_mode={test_mode}) ---")
     catalog_dir_abs = os.path.abspath(CATALOG_JSON_DIR)
     logger.info(f"Checking for JSON files in directory: {CATALOG_JSON_DIR} (Absolute: {catalog_dir_abs})")
 
     if not os.path.exists(CATALOG_JSON_DIR) or not os.path.isdir(CATALOG_JSON_DIR):
         logger.error(f"Source directory not found: {CATALOG_JSON_DIR}")
-        return False, [] # <-- Возвращаем кортеж
+        return False, []
 
     try:
         json_files = [f for f in os.listdir(CATALOG_JSON_DIR) if f.endswith(".json")]
     except Exception as e:
         logger.error(f"Error listing files in {CATALOG_JSON_DIR}: {e}", exc_info=True)
-        return False, [] # <-- Возвращаем кортеж
+        return False, []
 
     if not json_files:
         logger.warning(f"No JSON files found in {CATALOG_JSON_DIR}. Nothing to prepare.")
-        return True, [] # <-- Возвращаем кортеж (успех, т.к. нечего делать)
+        return True, [] # Success, as there's nothing to do
 
     logger.info(f"Found {len(json_files)} JSON files to process: {json_files}")
     os.makedirs(NEW_GAMES_DIR, exist_ok=True)
@@ -200,17 +208,17 @@ def prepare_game_files(test_mode=False):
 
     if success_count == 0 and len(json_files) > 0:
         logger.error("No files were successfully prepared, though source files existed.")
-        return False, [] # <-- Возвращаем кортеж
+        return False, []
     elif success_count > 0:
-         logger.info(f"Successfully prepared {success_count} out of {len(json_files)} games.")
-         return True, processed_files # <-- Возвращаем кортеж
-    else: # json_files был пуст
-         logger.info("No source JSON files to prepare.")
-         return True, [] # <-- Возвращаем кортеж
+        logger.info(f"Successfully prepared {success_count} out of {len(json_files)} games.")
+        return True, processed_files
+    else: # json_files was empty
+        logger.info("No source JSON files to prepare.")
+        return True, []
 
 
-# --- (run_game_uploader, cleanup_processed_files, move_comments_files_to_processed - без изменений) ---
-def run_game_uploader():  
+# --- Uploader and Cleanup Functions ---
+def run_game_uploader():
     """Run GameUploader.py."""
     logger.info(f"Attempting to run script: {GAME_UPLOADER_SCRIPT}")
     if not os.path.exists(GAME_UPLOADER_SCRIPT):
@@ -219,20 +227,16 @@ def run_game_uploader():
 
     try:
         logger.info("--- Starting GameUploader.py subprocess ---")
-        # Используем тот же метод запуска, что и в controller.py для консистентности
+        # Use a consistent launch method
         process = subprocess.Popen(
             [sys.executable, GAME_UPLOADER_SCRIPT],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            encoding='utf-8' # Укажем кодировку
+            encoding='utf-8' # Specify the encoding
         )
 
-        stdout_lines = []
-        stderr_lines = []
-
-        # Читаем вывод по мере поступления (неблокирующее чтение может быть сложным)
-        # Используем communicate для простоты, но он ждет завершения
+        # Using communicate for simplicity, as it waits for the process to complete.
         stdout, stderr = process.communicate()
 
         logger.info("--- GameUploader.py subprocess finished ---")
@@ -240,7 +244,8 @@ def run_game_uploader():
         if stdout:
              logger.info(f"GameUploader STDOUT:\n{stdout.strip()}")
         if stderr:
-             logger.warning(f"GameUploader STDERR:\n{stderr.strip()}") # Логируем stderr как warning
+             # Log stderr as a warning
+             logger.warning(f"GameUploader STDERR:\n{stderr.strip()}")
 
         if process.returncode != 0:
             logger.error(f"GameUploader.py failed with exit code {process.returncode}")
@@ -252,9 +257,10 @@ def run_game_uploader():
     except Exception as e:
         logger.error(f"Unexpected error running GameUploader.py: {e}", exc_info=True)
         return False
+
 def cleanup_processed_files(processed_json_sources):
     """Remove successfully processed files from catalog_json."""
-    logger.info(f"--- Starting cleanup of processed source files ---")
+    logger.info("--- Starting cleanup of processed source files ---")
     if not processed_json_sources:
         logger.info("No processed files list provided, skipping cleanup.")
         return
@@ -266,14 +272,14 @@ def cleanup_processed_files(processed_json_sources):
                 os.remove(file_path)
                 logger.info(f"Removed processed file: {file_path}")
             else:
-                 logger.warning(f"Tried to remove non-file or missing file: {file_path}")
+                 logger.warning(f"Tried to remove non-existent file: {file_path}")
         except Exception as e:
             logger.error(f"Error removing processed file {file_path}: {e}", exc_info=True)
     logger.info("--- Cleanup finished ---")
 
 
 def move_comments_files_to_processed():
-    """Move files with comments from New_Games to Processed_Games."""
+    """Move files with comments from New_Games to Processed_Games for archival."""
     logger.info(f"--- Moving files with comments to {PROCESSED_GAMES_DIR} ---")
     os.makedirs(PROCESSED_GAMES_DIR, exist_ok=True)
     moved_count = 0
@@ -291,42 +297,40 @@ def move_comments_files_to_processed():
     except Exception as e:
         logger.error(f"Error listing files in {NEW_GAMES_DIR} for moving comments: {e}", exc_info=True)
     logger.info(f"Moved {moved_count} files with comments.")
-    logger.info(f"--- Finished moving comments files ---")
+    logger.info("--- Finished moving comments files ---")
 
-# --- main (без изменений в логике, но теперь распаковка кортежа сработает) ---
+# --- Main Execution Logic ---
 def main():
     logger.info("=== Prepare and Upload Process Starting ===")
-    processed_files_list = [] # Инициализация
+    processed_files_list = [] # Initialization
     try:
         test_mode = "--test" in sys.argv
         logger.info(f"Running in {'test' if test_mode else 'live'} mode")
 
-        # Теперь распаковка будет работать всегда, т.к. prepare_game_files возвращает кортеж
         prepare_success, processed_files_list = prepare_game_files(test_mode)
 
         if not prepare_success:
             logger.error("Failed to prepare game files (check logs above). Aborting.")
-            sys.exit(1) # Выход с ошибкой
+            sys.exit(1) # Exit with an error
 
-        # Проверяем, были ли файлы для обработки и удалось ли их обработать
+        # Check if there were files to process and if they were processed successfully
         if not processed_files_list:
-             # Проверяем, были ли вообще исходные файлы
-             source_files_existed = False
-             if os.path.exists(CATALOG_JSON_DIR) and os.path.isdir(CATALOG_JSON_DIR):
-                 try:
-                      if any(f.endswith(".json") for f in os.listdir(CATALOG_JSON_DIR)):
-                           source_files_existed = True
-                 except Exception:
-                      pass # Ошибки чтения директории уже залогированы
+            # Check if source files existed at all
+            source_files_existed = False
+            if os.path.exists(CATALOG_JSON_DIR) and os.path.isdir(CATALOG_JSON_DIR):
+                try:
+                    if any(f.endswith(".json") for f in os.listdir(CATALOG_JSON_DIR)):
+                        source_files_existed = True
+                except Exception:
+                    # Directory read errors are already logged in prepare_game_files
+                    pass
 
-             if source_files_existed:
-                 logger.error("Source JSON files existed, but none were successfully prepared (likely all invalid). Aborting.")
-                 sys.exit(1)
-             else:
-                 logger.info("No source JSON files found to process. Exiting successfully.")
-                 sys.exit(0) # Успешный выход, если файлов не было
-
-        # Если дошли сюда, значит prepare_success == True и processed_files_list не пуст
+            if source_files_existed:
+                logger.error("Source JSON files existed, but none were successfully prepared (likely all invalid). Aborting.")
+                sys.exit(1)
+            else:
+                logger.info("No source JSON files found to process. Exiting successfully.")
+                sys.exit(0) # Successful exit if there were no files
 
         if not test_mode:
             logger.info("--- Starting game upload process ---")
@@ -347,7 +351,7 @@ def main():
         sys.exit(0)
 
     except Exception as e:
-        logger.critical(f"CRITICAL UNHANDLED ERROR in prepare_and_upload main: {e}", exc_info=True)
+        logger.critical(f"CRITICAL UNHANDLED ERROR in main: {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ import base64
 
 load_dotenv()
 
-# Настройка логирования
+# Logging setup
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -93,12 +93,12 @@ class AuthorManager:
             return None
 
     def get_or_create_author(self, name, description=""):
-        # Поддержка списка авторов: обрабатываем только одного автора здесь
+        # Support for a list of authors: we only process one author here
         if isinstance(name, list):
             logger.warning("get_or_create_author received a list; use get_or_create_authors for multiple authors")
             if not name:
                 return None
-            name = name[0]  # Для обратной совместимости берём первого
+            name = name[0]  # For backward compatibility, we take the first one
         name_lower = name.lower()
         if name_lower in self.authors_cache:
             logger.info(f"Found existing author: {name} (ID: {self.authors_cache[name_lower]})")
@@ -106,9 +106,9 @@ class AuthorManager:
         return self.create_author(name, description)
 
     def get_or_create_authors(self, authors, description=""):
-        """Обрабатывает список авторов и возвращает их ID."""
+        """Processes a list of authors and returns their IDs."""
         if not isinstance(authors, list):
-            authors = [authors]  # Преобразуем строку в список из одного элемента
+            authors = [authors]  # Convert a string to a list with a single element
         author_ids = []
         for name in authors:
             if not name:
@@ -302,7 +302,7 @@ class GameUploader:
                     else:
                         logger.warning(f"Failed to get or create tag '{tag_name}'")
 
-            # Получаем список ID авторов
+            # Get the list of author IDs
             author_ids = []
             if 'author' in game_data:
                 author_ids = self.author_manager.get_or_create_authors(game_data['author'])
@@ -315,7 +315,7 @@ class GameUploader:
                 ('uploader', game_data['uploader']),
             ]
 
-            # Добавляем image_base64, если присутствует
+            # Add image_base64 if present
             if 'image_base64' in game_data:
                 logger.info(f"Using image_base64 for {game_data['title']}")
                 form_data.append(('image_base64', game_data['image_base64']))
@@ -324,7 +324,7 @@ class GameUploader:
                 form_data.append(('iframe_url', game_data['iframe_url']))
             for tag_id in tag_ids:
                 form_data.append(('tags', tag_id))
-            # Добавляем всех авторов в form_data
+            # Add all authors to form_data
             for author_id in author_ids:
                 form_data.append(('authors', author_id))
 
@@ -358,7 +358,7 @@ class GameUploader:
                 game_record = response.json()
                 logger.info(f"Game created successfully: {game_record['id']}")
 
-            # Связываем авторов с игрой (на случай, если API не обработал authors в form_data)
+            # Link authors to the game (in case the API didn't process authors in form_data)
             for author_id in author_ids:
                 time.sleep(self.request_delay)
                 self.link_game_to_author(game_record['id'], author_id)
@@ -374,7 +374,7 @@ class GameUploader:
             if not self.token:
                 raise Exception("Not authenticated")
             headers = {'Authorization': self.token}
-            # Получаем текущие данные игры
+            # Get current game data
             response = requests.get(
                 f'{self.base_url}/collections/games/records/{game_id}',
                 headers=headers
@@ -393,7 +393,7 @@ class GameUploader:
                 logger.info(f'Linked game {game_id} to author {author_id}')
             else:
                 logger.info(f'Game {game_id} already linked to author {author_id}')
-            # Обновляем автора (двусторонняя связь)
+            # Update the author (two-way link)
             response = requests.get(
                 f'{self.base_url}/collections/authors/records/{author_id}',
                 headers=headers
