@@ -328,14 +328,17 @@ async def main_async(force_screenshots=False):
                 logger.error(f"Screenshot file not found after processing: {webp_path}")
                 visual_analysis_failures.append(base_url)
 
-            logger.info(f"Running summarization for {md_file} in sent_search mode")
-            success, output, error = await run_script_async(
-                "summarize.py", 
-                f"{md_file} --mode sent_search", 
-                max_retries=MAX_RETRIES
-            )
-            if not success:
-                logger.error(f"Summarization failed for {url}: {error}")
+           # logger.info(f"Running summarization for {md_file} in sent_search mode")
+            # success, output, error = await run_script_async(
+            #     "summarize.py", 
+            #     f"{md_file} --mode sent_search", 
+            #     max_retries=MAX_RETRIES
+            # )
+            # if not success:
+            #     logger.error(f"Summarization failed for {url}: {error}")
+
+            # logger.info("Pausing for 0.5s before next summarization...")
+            # await asyncio.sleep(0.5)
 
             logger.info("Pausing for 0.5s before next summarization...")
             await asyncio.sleep(0.5)
