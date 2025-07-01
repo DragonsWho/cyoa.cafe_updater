@@ -1,0 +1,28 @@
+# Для работы с API и скачивания
+requests
+
+# Для парсинга HTML/CSS
+beautifulsoup4
+
+# Для работы с .env файлом конфигурации
+python-dotenv
+
+# Для анализа и обработки данных
+pandas
+
+# Для нечеткого сравнения строк
+fuzzywuzzy
+python-Levenshtein
+
+# Для управления браузером (Selenium)
+selenium
+webdriver-manager
+
+# Для определения кодировок файлов
+chardet
+
+# Для обработки изображений
+Pillow
+
+# Для работы с Google Gemini API (новая!)
+google-generativeai
