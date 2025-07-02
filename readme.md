@@ -185,6 +185,26 @@ This script is a utility for manually updating the cover image of an **existing*
     -   `GameUploader.py` communicates with the `cyoa.cafe` API, creates new authors/tags if needed, and uploads the game data and images.
 7.  **Cleanup & Reporting**: After a successful upload, processed files are archived, and a final report is printed to the console and `log.txt`.
 
+## Usage
+
+### Basic Processing
+
+1. Add the link in links.txt - it's better to add one game at a time
+
+2. Type
+```bash 
+python controller.py
+```
+3. Check the tags manually on the Moderator Panel
+
+
+### Screenshot Replacement
+
+```bash
+python image_replacer.py "Cyoa title from catalog"
+```
+
+
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
