@@ -43,7 +43,7 @@ Tag selection requirements (mandatory adherence to these counts):
 • Setting: Select 0-3 tags
 • Genre: Select 0-3 tags
 • Kinks: Select 0-7 tags
-• Custom: Select 5-10 tags (Use existing tags wherever possible, focusing on unique mechanics, major themes, or standout features, avoiding minor details or one-off mentions)
+• Custom: Select 2-4 tags (Use existing tags wherever possible, focusing on unique mechanics, major themes, or standout features, avoiding minor details or one-off mentions)
 
 Each tag should be on a separate line
 For each tag in the tags array, add a short comment in the format // <explanation> explaining which category the tag belongs to and explaining why this tag was chosen based on the game content.

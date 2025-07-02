@@ -27,7 +27,7 @@ def setup_logging():
         level=logging.INFO,
         format='%(asctime)s [%(levelname)s] %(message)s',
         handlers=[
-            logging.FileHandler(f"logs/process_{date_str}.log"),
+            # logging.FileHandler(f"logs/process_{date_str}.log"),  # <--- ЗАКОММЕНТИРОВАНО
             logging.StreamHandler(sys.stdout)
         ]
     )
