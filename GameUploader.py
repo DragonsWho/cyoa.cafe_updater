@@ -358,62 +358,12 @@ class GameUploader:
                 game_record = response.json()
                 logger.info(f"Game created successfully: {game_record['id']}")
 
-            # Link authors to the game (in case the API didn't process authors in form_data)
-            for author_id in author_ids:
-                time.sleep(self.request_delay)
-                self.link_game_to_author(game_record['id'], author_id)
-
             return game_record
         except Exception as e:
             logger.error(f"Failed to create game '{game_data['title']}': {str(e)}", exc_info=True)
             raise
 
-    def link_game_to_author(self, game_id, author_id):
-        logger.info(f"Linking game {game_id} to author {author_id}")
-        try:
-            if not self.token:
-                raise Exception("Not authenticated")
-            headers = {'Authorization': self.token}
-            # Get current game data
-            response = requests.get(
-                f'{self.base_url}/collections/games/records/{game_id}',
-                headers=headers
-            )
-            response.raise_for_status()
-            game_data = response.json()
-            current_authors = game_data.get('authors', [])
-            if author_id not in current_authors:
-                current_authors.append(author_id)
-                response = requests.patch(
-                    f'{self.base_url}/collections/games/records/{game_id}',
-                    headers=headers,
-                    json={'authors': current_authors}
-                )
-                response.raise_for_status()
-                logger.info(f'Linked game {game_id} to author {author_id}')
-            else:
-                logger.info(f'Game {game_id} already linked to author {author_id}')
-            # Update the author (two-way link)
-            response = requests.get(
-                f'{self.base_url}/collections/authors/records/{author_id}',
-                headers=headers
-            )
-            response.raise_for_status()
-            author_data = response.json()
-            current_games = author_data.get('games', [])
-            if game_id not in current_games:
-                current_games.append(game_id)
-                response = requests.patch(
-                    f'{self.base_url}/collections/authors/records/{author_id}',
-                    headers=headers,
-                    json={'games': current_games}
-                )
-                response.raise_for_status()
-                logger.info(f'Updated author {author_id} with game {game_id}')
-            return True
-        except Exception as e:
-            logger.error(f'Error linking game {game_id} to author {author_id}: {e}')
-            return False
+    # УСТАРЕВШАЯ ФУНКЦИЯ link_game_to_author БЫЛА ПОЛНОСТЬЮ УДАЛЕНА
 
 def move_processed_files(game_data, processed_folder):
     logger.info(f"Moving processed files for {game_data['title']} to {processed_folder}")

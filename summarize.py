@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # --- Configuration, paths, and logger setup ---
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = "google/gemini-2.5-flash-preview-05-20"
+OPENROUTER_MODEL = "moonshotai/kimi-k2"
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 YOUR_SITE_URL = os.getenv("YOUR_SITE_URL", "http://localhost")
 YOUR_APP_NAME = os.getenv("YOUR_APP_NAME", "CYOA_Summarizer")
