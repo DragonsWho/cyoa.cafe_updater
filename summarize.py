@@ -15,11 +15,23 @@ from dotenv import load_dotenv
 
 # --- Configuration, paths, and logger setup ---
 load_dotenv()
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = "moonshotai/kimi-k2"
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-YOUR_SITE_URL = os.getenv("YOUR_SITE_URL", "http://localhost")
-YOUR_APP_NAME = os.getenv("YOUR_APP_NAME", "CYOA_Summarizer")
+# OLD: OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+# NEW: Nano GPT API Key
+NANO_GPT_API_KEY = os.getenv("NANO_GPT_API_KEY")
+
+# OLD: OPENROUTER_MODEL = "moonshotai/deepseek/deepseek-chat-v3-0324"
+# NEW: Nano GPT Model (use a model supported by Nano GPT, e.g., chatgpt-4o-latest)
+# Make sure to set NANO_GPT_MODEL in your .env file or it defaults to chatgpt-4o-latest
+NANO_GPT_MODEL = os.getenv("NANO_GPT_MODEL", "chatgpt-4o-latest")
+
+# OLD: OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+# NEW: Nano GPT API URL
+NANO_GPT_API_URL = "https://nano-gpt.com/api/v1/chat/completions"
+
+# These were specific to OpenRouter's headers and are no longer needed for Nano GPT
+# YOUR_SITE_URL = os.getenv("YOUR_SITE_URL", "http://localhost")
+# YOUR_APP_NAME = os.getenv("YOUR_APP_NAME", "CYOA_Summarizer")
+
 PROMPTS_DIR = "prompts"
 SENT_SEARCH_PROMPT_PATH = os.path.join(PROMPTS_DIR, "Grok_for_sent_search.md")
 CATALOG_PROMPT_PATH = os.path.join(PROMPTS_DIR, "Grok_description_for_catalog.md")
@@ -226,17 +238,21 @@ def get_csv_hint(project_name):
         return "\n\n=== CSV Hint ===\nUnexpected error processing CSV."
 
 
-def call_openrouter_api(prompt_text, image_path=None, timeout=180):
-    """Calls the OpenRouter API with a text prompt and an optional image."""
-    if not OPENROUTER_API_KEY:
-        logger.error("OpenRouter API Key (OPENROUTER_API_KEY) not found.")
+# OLD: def call_openrouter_api(prompt_text, image_path=None, timeout=180):
+def call_nano_gpt_api(prompt_text, image_path=None, timeout=180):
+    """Calls the Nano GPT API with a text prompt and an optional image."""
+    # OLD: if not OPENROUTER_API_KEY:
+    if not NANO_GPT_API_KEY:
+        logger.error("Nano GPT API Key (NANO_GPT_API_KEY) not found.")
         return "Error: API Key missing."
 
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        # OLD: "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {NANO_GPT_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": YOUR_SITE_URL,
-        "X-Title": YOUR_APP_NAME,
+        # Removed OpenRouter specific headers:
+        # "HTTP-Referer": YOUR_SITE_URL,
+        # "X-Title": YOUR_APP_NAME,
     }
     messages = [{"role": "user", "content": [{"type": "text", "text": prompt_text}]}]
     if image_path and os.path.exists(image_path):
@@ -257,16 +273,20 @@ def call_openrouter_api(prompt_text, image_path=None, timeout=180):
     elif image_path:
         logger.warning(f"Image file provided but not found: {image_path}")
 
-    payload = {"model": OPENROUTER_MODEL, "messages": messages}
+    # OLD: payload = {"model": OPENROUTER_MODEL, "messages": messages}
+    payload = {"model": NANO_GPT_MODEL, "messages": messages}
     logger.info("--- Sending request ---")
-    logger.info(f"URL: {OPENROUTER_API_URL}")
-    logger.info(f"Model: {OPENROUTER_MODEL}")
+    # OLD: logger.info(f"URL: {OPENROUTER_API_URL}")
+    logger.info(f"URL: {NANO_GPT_API_URL}")
+    # OLD: logger.info(f"Model: {OPENROUTER_MODEL}")
+    logger.info(f"Model: {NANO_GPT_MODEL}")
     logger.info(f"Headers: {mask_auth_header(headers)}")
     logger.info(f"Payload:\n{log_payload(payload)}")
 
     response_text = None
     try:
-        response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload, timeout=timeout)
+        # OLD: response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload, timeout=timeout)
+        response = requests.post(NANO_GPT_API_URL, headers=headers, json=payload, timeout=timeout)
         response_text = response.text
         logger.info(f"--- Received response ({response.status_code}) ---")
         logger.info(f"Body:\n{response_text}")
@@ -277,10 +297,10 @@ def call_openrouter_api(prompt_text, image_path=None, timeout=180):
         choice = data.get("choices", [{}])[0]
         finish_reason = choice.get("finish_reason")
         if finish_reason == "content_filter":
-            native_reason = choice.get("native_finish_reason", "N/A")
-            error_msg = f"API refused to generate content due to content filter. Reason: {native_reason}"
+            # Removed native_reason as it's OpenRouter specific.
+            error_msg = f"API refused to generate content due to content filter."
             logger.error(error_msg)
-            return f"Error: FATAL_CONTENT_FILTER: {native_reason}" # Return a specific fatal error
+            return f"Error: FATAL_CONTENT_FILTER: API content filter triggered." # Return a specific fatal error
 
         if "choices" not in data or not data["choices"]:
              raise ValueError("Invalid response structure: 'choices' missing or empty.")
@@ -358,7 +378,8 @@ async def summarize_md_file(md_file_name, mode="sent_search"):
 
     full_prompt = f"{prompt_template}{additional_data}\n\n=== Game Text ===\n{game_text}{vision_description}"
     logger.info(f"Prompt constructed. Beginning: {full_prompt[:500]}...")
-    response = call_openrouter_api(full_prompt, image_path=image_path_for_api, timeout=180)
+    # OLD: response = call_openrouter_api(full_prompt, image_path=image_path_for_api, timeout=180)
+    response = call_nano_gpt_api(full_prompt, image_path=image_path_for_api, timeout=180)
     logger.info("Raw response received from API.")
 
     # --- NEW: Handle fatal content filter error ---
@@ -390,8 +411,9 @@ async def summarize_md_file(md_file_name, mode="sent_search"):
 # --- Main Entry Point ---
 async def main():
     logger.info("--- Summarize Script Started ---")
-    if not OPENROUTER_API_KEY:
-        logger.critical("FATAL: OPENROUTER_API_KEY environment variable is not set.")
+    # OLD: if not OPENROUTER_API_KEY:
+    if not NANO_GPT_API_KEY:
+        logger.critical("FATAL: NANO_GPT_API_KEY environment variable is not set.")
         sys.exit(1)
     logger.info("API Key found.")
 
