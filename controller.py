@@ -1,3 +1,5 @@
+#controller.py
+
 import subprocess
 import sys
 import datetime
@@ -74,11 +76,17 @@ def run_script(script_name, args=None):
         output = "\n".join(output_lines)
         error = "\n".join(error_lines)
 
-        if process.returncode != 0:
-            logger.error(f"Script returned non-zero exit code: {process.returncode}")
-            return False, output, error
-
-        return True, output, error
+        if process.returncode == 0:
+            return True, output, error
+        else:
+            logger.error(f"Script '{script_name}' returned non-zero exit code: {process.returncode}")
+            detailed_error_message = f"Script '{script_name}' failed with exit code {process.returncode}."
+            if output:
+                detailed_error_message += f"\n--- STDOUT ---\n{output}"
+            if error:
+                detailed_error_message += f"\n--- STDERR ---\n{error}"
+            
+            return False, output, detailed_error_message.strip()
 
     except subprocess.TimeoutExpired:
         return False, "", "Timeout expired"

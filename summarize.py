@@ -22,7 +22,7 @@ NANO_GPT_API_KEY = os.getenv("NANO_GPT_API_KEY")
 # OLD: OPENROUTER_MODEL = "moonshotai/deepseek/deepseek-chat-v3-0324"
 # NEW: Nano GPT Model (use a model supported by Nano GPT, e.g., chatgpt-4o-latest)
 # Make sure to set NANO_GPT_MODEL in your .env file or it defaults to chatgpt-4o-latest
-NANO_GPT_MODEL = os.getenv("NANO_GPT_MODEL", "chatgpt-4o-latest")
+NANO_GPT_MODEL = os.getenv("NANO_GPT_MODEL", "gpt-4o-mini")
 
 # OLD: OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 # NEW: Nano GPT API URL
@@ -373,8 +373,32 @@ async def summarize_md_file(md_file_name, mode="sent_search"):
         tags = get_tag_categories()
         csv_hint = get_csv_hint(project_name)
         if authors: additional_data += f"\n\n=== List of Known Authors ===\n{authors}\n"
+        tags = get_tag_categories()
+
+        # --- НАЧАЛО НОВОГО БЛОКА: Фильтрация кастомных тегов ---
+        if tags:
+            try:
+                # 1. Преобразуем JSON-строку в список словарей Python
+                tag_data = json.loads(tags)
+                
+                # 2. Создаем новый список, исключая словарь, где 'category_name' равен 'Custom'
+                filtered_tag_data = [
+                    category for category in tag_data 
+                    if category.get("category_name") != "Custom"
+                ]
+                
+                # 3. Преобразуем отфильтрованный список обратно в JSON-строку для промпта
+                tags = json.dumps(filtered_tag_data, ensure_ascii=False)
+                logger.info("Successfully filtered out the 'Custom' tag category.")
+                
+            except json.JSONDecodeError as e:
+                # Если JSON некорректный, оставляем как есть и выводим предупреждение
+                logger.warning(f"Could not parse and filter tags JSON: {e}. Using original tag list.")
+        # --- КОНЕЦ НОВОГО БЛОКА ---
+
+        csv_hint = get_csv_hint(project_name)
+        if authors: additional_data += f"\n\n=== List of Known Authors ===\n{authors}\n"
         if tags: additional_data += f"\n\n=== List of Known Tag Categories ===\n{tags}\n"
-        additional_data += csv_hint
 
     full_prompt = f"{prompt_template}{additional_data}\n\n=== Game Text ===\n{game_text}{vision_description}"
     logger.info(f"Prompt constructed. Beginning: {full_prompt[:500]}...")
